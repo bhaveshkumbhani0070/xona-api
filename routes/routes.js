@@ -11,6 +11,7 @@ router.get('/',function(req,res){
 })
 
 router.post('/signup', user_controller.signup);
+router.post('/verifyotp',user_controller.verifyOTP);
 router.get('/:id', user_controller.user_details);
 router.put('/:id/update', user_controller.user_update)
 router.delete('/:id/delete', user_controller.user_delete);

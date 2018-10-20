@@ -1,24 +1,136 @@
 
 const User = require('../models/user.model');
+const SendOtp = require('sendotp');
+const config=require("../config.json");
+const sendOtp = new SendOtp(config.otpAuth,'Otp for XONA.in is {{otp}}, please do not share it with anybody');
+const fun=require('./function');
+
+
+
 
 //Simple version, without validation or sanitation
 exports.signup = function (req, res) {
-    // res.send('Greetings from the Test controller!');
 
-    let user = new User(
-        {
-            name: req.body.name,
+    // Will send otp on mobile
+    sendOTP(req.body.mobile,"PRIIND");
+
+    // Genrate uniq code for user which will use as a refrence code
+    genrateCode(function(cData){
+
+        //check code is found in database or not
+        if(req.body.parentCode){
+            User.find({code:req.body.parentCode},function(err,parentData){
+                if(!err){
+                    if(parentData.length>0){
+                        console.log('data found');
+                        User.findByIdAndUpdate(parentData[0]._id, {$push: {childCode:cData}}, function (err, product) {
+                            if (err){
+                                console.log('Error for update ');
+                                return;
+                                // res.json({code:200,status:'error',message:'Error for update'});
+                                // return;
+                            }
+                            else{
+                                // Create new user with parent code and child code blank for feature update
+                                console.log('Error for push child code into child array');
+                                return;
+                            }
+                        });
+                    }
+                    else{
+                        console.log('data not found');
+                        return;
+                    }
+                }
+                else{
+                    res.json({code:200,status:'error',message:'Error for find a data for parent'});
+                    return;
+                }
+            })
         }
-    );
 
-    user.save(function (err) {
-        if (err) {
-            console.log('Error',err);
+        let user = new User(
+            {
+                name: req.body.name,
+                mobile:req.body.mobile,
+                code:cData,
+                parentCode:req.body.parentCode,
+                childCode:[],
+                verified:false,
+                create_at:new Date()
+            }
+        );
+
+        user.save(function (err,data) {
+            if (err) {
+                console.log('Error',err);
+                return;
+            }
+            else{
+                res.json({message:'Product Created successfully',data:data});
+                return;
+            }
+        })
+
+    });
+};
+
+
+function genrateCode(callback){
+    var choice = fun.makeid();
+    callback(choice);
+}
+
+function sendOTP(mobi,mes){
+    sendOtp.send(mobi, mes, function(err,data){
+        if(!err){
+            console.log('Send successfully',data);
+        }
+        else{
+            console.log('Error for sending OTP',err);
+        }
+    });
+}
+
+
+exports.verifyOTP=function(req,res){
+    var mobi=req.body.mobile;
+    var otp=req.body.otp;
+
+    sendOtp.verify(mobi, otp, function(err,Otpdata){
+        if(!err){
+            console.log('Otpdata',Otpdata);
+            User.find({mobile:mobi},function(err,data){
+                if(!err){
+                    console.log('found',data[0]._id);
+                    User.findByIdAndUpdate(data[0]._id, {$set: {verified:true}}, function (err, product) {
+                        if (err){
+                            res.json({code:200,status:'error',message:'Error for update'});
+                            return;
+                        }
+                        else{
+                            res.json({code:200,status:"success",message:"Account successfully verified"});
+                            return;
+                        }
+                    });
+                }
+                else{
+                    res.json({code:200,status:"error",message:"Error for find user using mobile number"});
+                    console.log('Error ',err);
+                    return;
+                }
+            })
+
+        }
+        else{
+            console.log('Error for match OTP');
+            res.json({code:200,status:"error",message:"OTP match successfully"});
             return;
         }
-        res.send('Product Created successfully')
-    })
-};
+    });
+}
+// console.log('math',fun.getRandomInt(4));
+
 
 exports.user_details=function(req,res){
     User.findById(req.params.id, function (err, product) {
