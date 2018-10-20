@@ -7,8 +7,9 @@ const user_controller = require('../controllers/user.controller');
 
 // a simple test url to check that all of our files are communicating correctly.
 router.get('/',function(req,res){
-    res.send("Welcome to Xona");
+     res.send("Welcome to Xona");
 })
+
 router.post('/signup', user_controller.signup);
 router.get('/:id', user_controller.user_details);
 router.put('/:id/update', user_controller.user_update)

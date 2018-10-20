@@ -1,3 +1,4 @@
+
 const User = require('../models/user.model');
 
 //Simple version, without validation or sanitation
