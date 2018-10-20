@@ -3,12 +3,11 @@ const bodyParser = require('body-parser');
 // initialize our express app
 const routes = require('./routes/routes.js');
 const app = express();
-let port = 9000;
+let port = process.env.PORT || 9000;
 
 // Set up mongoose connection
 const mongoose = require('mongoose');
-let dev_db_url = 'mongodb://kumbhanibhavesh:alex9099414492@ds029640.mlab.com:29640/xona';
-let mongoDB = dev_db_url || process.env.MONGODB_URI ;
+let mongoDB = process.env.MONGODB_URI ;
 mongoose.connect(mongoDB);
 mongoose.Promise = global.Promise;
 let db = mongoose.connection;
