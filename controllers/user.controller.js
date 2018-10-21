@@ -11,6 +11,22 @@ const fun=require('./function');
 //Simple version, without validation or sanitation
 exports.signup = function (req, res) {
 
+    User.find({mobile:req.body.mobile},function(err,oldUser){
+        if(!err){
+            if(oldUser.length>0){
+                console.log('User alredy register with this mobile number');
+                res.status(500).json({status:false,message:'User alredy register with this mobile number. Please login.'});
+                return;
+            }
+            else{
+
+            }
+        }
+        else{
+
+        }
+    });
+
     // Will send otp on mobile
     sendOTP(req.body.mobile,"PRIIND");
 
@@ -43,7 +59,7 @@ exports.signup = function (req, res) {
                     }
                 }
                 else{
-                    res.json({code:200,status:'error',message:'Error for find a data for parent'});
+                    res.status(500).json({ status: false,message:'Error for get a data for parent' })
                     return;
                 }
             })
@@ -67,7 +83,7 @@ exports.signup = function (req, res) {
                 return;
             }
             else{
-                res.json({message:'Product Created successfully',data:data});
+                res.status(200).json({ status: true,message:'User created successfull !',data:data });
                 return;
             }
         })
@@ -105,31 +121,35 @@ exports.verifyOTP=function(req,res){
                     console.log('found',data[0]._id);
                     User.findByIdAndUpdate(data[0]._id, {$set: {verified:true}}, function (err, product) {
                         if (err){
-                            res.json({code:200,status:'error',message:'Error for update'});
+                            res.status(500).json({ status: false,message:'Error for update' });
                             return;
                         }
                         else{
-                            res.json({code:200,status:"success",message:"Account successfully verified"});
+                            res.status(200).json({ status:true,message:'Account successfully verified !' });
                             return;
                         }
                     });
                 }
                 else{
-                    res.json({code:200,status:"error",message:"Error for find user using mobile number"});
+                    res.status(500).json({ status: false,message:'Error for find user using mobile number' });
                     console.log('Error ',err);
                     return;
                 }
             })
-
         }
         else{
             console.log('Error for match OTP');
-            res.json({code:200,status:"error",message:"OTP match successfully"});
+            res.status(200).json({ status:true,message:'OTP match successfully !' });
             return;
         }
     });
 }
 // console.log('math',fun.getRandomInt(4));
+
+
+exports.login=function(req,res){
+
+}
 
 
 exports.user_details=function(req,res){
@@ -158,3 +178,4 @@ exports.user_delete=function(req,res){
         res.send('Deleted successfully!');
     })
 }
+
