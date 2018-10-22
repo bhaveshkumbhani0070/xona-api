@@ -15,16 +15,14 @@ exports.signup = function (req, res) {
         if(!err){
             if(oldUser.length>0){
                 console.log('User alredy register with this mobile number');
-                res.status(500).json({status:false,message:'User alredy register with this mobile number. Please login.'});
+                res.status(400).json({status:false,message:'User alredy register with this mobile number. Please login.'});
                 return;
             }
             else{
                  // Will send otp on mobile
                 sendOTP(req.body.mobile,"PRIIND");
-
                 // Genrate uniq code for user which will use as a refrence code
                 genrateCode(function(cData){
-
                     //check code is found in database or not
                     if(req.body.parentCode){
                         User.find({code:req.body.parentCode},function(err,parentData){
@@ -59,11 +57,22 @@ exports.signup = function (req, res) {
 
                     let user = new User(
                         {
-                            name: req.body.name,
+                            firstname: req.body.firstname,
+                            lastname:req.body.lastname,
                             mobile:req.body.mobile,
+                            email:req.body.email,
+                            alternate_email:req.body.alternate_email,
+                            dob:req.body.dob,
+                            merriag_date:req.body.merriag_date,
+                            area:req.body.area,
+                            pincode:req.body.pincode,
+                            city:req.body.city,
+                            country:req.body.country,
+                            gender:req.body.gender,
                             code:cData,
-                            parentCode:req.body.parentCode,
+                            reffaral_id:req.body.reffaral_id,
                             childCode:[],
+                            gst_no:req.body.gst_no,
                             verified:false,
                             create_at:new Date()
                         }
@@ -71,7 +80,8 @@ exports.signup = function (req, res) {
 
                     user.save(function (err,data) {
                         if (err) {
-                            console.log('Error',err);
+                            console.log('Error for save data',err);
+                            res.status(500).json({ status: false,message:'Error for save user details' });
                             return;
                         }
                         else{
@@ -84,7 +94,9 @@ exports.signup = function (req, res) {
             }
         }
         else{
-
+            console.log('Error for get user details');
+            res.status(500).json({ status: false,message:'Error for find user detail' });
+            return;
         }
     });
 
