@@ -26,7 +26,8 @@ exports.signup = function (req, res) {
              "merriag_date", "area", "pincode",
              "city", "country", "gender",
              "reffaral_id","code", "childCode",
-             "gst_no", "verified","create_at"
+             "gst_no", "verified","create_at",
+             "deviceData","packageList"
             ];
 
         var dbValues = [];

@@ -19,7 +19,9 @@ let UserSchema = new Schema({
     childCode:[String],// all child
     gst_no:{type:String,required:false},
     verified:{type:Boolean,required:true},
-    create_at:{type:Date,required:true}
+    create_at:{type:Date,required:true},
+    deviceData:[{}],
+    packageList:[{}]
 });
 
 
