@@ -19,9 +19,9 @@ exports.signup = function (req, res) {
     }
     else
     {
-
          usercolumns = [
-             "firstname", "lastname", "mobile",
+             "firstname", "lastname",
+              "primaryNumber","secondaryNumber",
              "email", "alternate_email","dob",
              "merriag_date", "area", "pincode",
              "city", "country", "gender",
@@ -35,7 +35,8 @@ exports.signup = function (req, res) {
         for (var iter = 0; iter < usercolumns.length; iter++) {
             columnName = usercolumns[iter];
 
-            if ((receivedValues[columnName] == undefined || receivedValues[columnName] == "") && (columnName == 'firstname' || columnName == 'lastname' || columnName=='mobile' ))
+            if ((receivedValues[columnName] == undefined || receivedValues[columnName] == "") &&
+            (columnName == 'firstname' || columnName == 'lastname' || columnName=='primaryNumber'|| columnName=='secondaryNumber' ))
             {
                 console.log("*** Redirecting: ", columnName, " field is required");
                 res.json({"code": 400, "status": "Error", "message": columnName + " field is undefined"});
@@ -58,16 +59,17 @@ exports.signup = function (req, res) {
         genrateCode(function(cData){
             receivedValues.code=cData;
 
-            User.find({mobile:req.body.mobile},function(err,oldUser){
+
+            User.find({$or:[{primaryNumber:req.body.primaryNumber},{secondaryNumber:req.body.secondaryNumber}] },function(err,oldUser){
                 if(!err){
                     if(oldUser.length>0){
                         console.log('User alredy register with this mobile number');
-                        res.status(400).json({status:false,message:'User alredy register with this mobile number. Please login.'});
+                        res.status(200).json({status:true,message:'User alredy register with this mobile number.',data:oldUser});
                         return;
                     }
                     else{
                         // Will send otp on mobile
-                        sendOTP(req.body.mobile,"PRIIND");
+                        sendOTP(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND");
                         // Genrate uniq code for user which will use as a refrence code
 
                             //check code is found in database or not
@@ -125,14 +127,30 @@ exports.signup = function (req, res) {
                 }
             });
         });
-
-
-
-
-
     }
-
 };
+
+
+
+exports.send_all_package=function(req,res){
+    User.find(function(err,data){
+        if(!err){
+            var allData=[];
+            for (let i = 0; i < data.length; i++) {
+                data[i].packageList.forEach(element => {
+                    allData.push(element);
+                });
+            }
+            res.status(200).json({status:true,message:'Get all packages',data:allData});
+            return;
+        }
+        else{
+            console.log('Error ',error);
+            res.status(400).json({status:false,message:'Error for getting user details'});
+            return;
+        }
+    });
+}
 
 
 function genrateCode(callback){
@@ -152,14 +170,47 @@ function sendOTP(mobi,mes){
 }
 
 
+
 exports.verifyOTP=function(req,res){
-    var mobi=req.body.mobile;
+    var primaryNumber=req.body.primaryNumber;
+    var secondaryNumber=req.body.secondaryNumber;
     var otp=req.body.otp;
 
-    sendOtp.verify(mobi, otp, function(err,Otpdata){
+    sendOtp.verify(primaryNumber, otp, function(err,Otpdata){
         if(!err){
             console.log('Otpdata',Otpdata);
-            User.find({mobile:mobi},function(err,data){
+            if(Otpdata.type!='error'){
+                verifiAccount('primaryNumber',primaryNumber)
+            }
+            else{
+                sendOtp.verify(secondaryNumber,otp,function(err,Otpdata){
+                    if(!err){
+                        if(Otpdata.type!='error'){
+                            verifiAccount('secondaryNumber',secondaryNumber)
+                        }
+                        else{
+                            res.status(500).json({ status:true,message:'OTP not match!' });
+                            return;
+                        }
+                    }
+                    else{
+                        console.log('Error for match OTP');
+                        res.status(400).json({ status:true,message:'Error for match OTP' });
+                        return;
+                    }
+                })
+            }
+        }
+        else{
+            console.log('Error for match OTP');
+            res.status(400).json({ status:true,message:'Error for match OTP' });
+            return;
+        }
+    });
+
+    function verifiAccount(field,value){
+        if(field=='primaryNumber'){
+            User.find({primaryNumber:value},function(err,data){
                 if(!err){
                     console.log('found',data[0]._id);
                     User.findByIdAndUpdate(data[0]._id, {$set: {verified:true}}, function (err, product) {
@@ -181,12 +232,31 @@ exports.verifyOTP=function(req,res){
             })
         }
         else{
-            console.log('Error for match OTP');
-            res.status(200).json({ status:true,message:'OTP match successfully !' });
-            return;
+            User.find({secondaryNumber:value},function(err,data){
+                if(!err){
+                    console.log('found',data[0]._id);
+                    User.findByIdAndUpdate(data[0]._id, {$set: {verified:true}}, function (err, product) {
+                        if (err){
+                            res.status(500).json({ status: false,message:'Error for update' });
+                            return;
+                        }
+                        else{
+                            res.status(200).json({ status:true,message:'Account successfully verified !' });
+                            return;
+                        }
+                    });
+                }
+                else{
+                    res.status(500).json({ status: false,message:'Error for find user using mobile number' });
+                    console.log('Error ',err);
+                    return;
+                }
+            })
         }
-    });
+
+    }
 }
+
 // console.log('math',fun.getRandomInt(4));
 
 

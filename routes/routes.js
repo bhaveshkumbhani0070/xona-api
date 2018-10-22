@@ -11,6 +11,7 @@ router.get('/',function(req,res){
 })
 
 router.post('/signup', user_controller.signup);
+router.get('/send_all_package',user_controller.send_all_package);
 router.post('/verifyotp',user_controller.verifyOTP);
 router.post('/login',user_controller.login);
 router.get('/:id', user_controller.user_details);
