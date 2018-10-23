@@ -1,5 +1,7 @@
 
 const User = require('../models/user.model');
+const Report=require('../models/report.model');
+
 const SendOtp = require('sendotp');
 const config=require("../config.json");
 const sendOtp = new SendOtp(config.otpAuth,'Otp for XONA.in is {{otp}}, please do not share it with anybody');
@@ -7,8 +9,9 @@ const fun=require('./function');
 var mongoose = require('mongoose');
 
 
+// ******************************** Users ******************************** //
 
-//Simple version, without validation or sanitation
+ //Simple version, without validation or sanitation
 exports.signup = function (req, res) {
     console.log("*** Requested for Creating New User... ***");
     receivedValues = req.body
@@ -130,6 +133,9 @@ exports.signup = function (req, res) {
     }
 };
 
+exports.login=function(req,res){
+
+}
 
 exports.send_Otp=function(req,res){
     sendOtp.send(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND", function(err,data){
@@ -287,9 +293,7 @@ exports.verifyOTP=function(req,res){
 // console.log('math',fun.getRandomInt(4));
 
 
-exports.login=function(req,res){
 
-}
 
 
 exports.user_details=function(req,res){
@@ -377,3 +381,22 @@ exports.user_delete=function(req,res){
     });
 }
 
+
+
+// ******************************** Reports ******************************** //
+
+exports.get_today_report=function(req,res){
+
+    Report.find({$and:[{_id:mongoose.Types.ObjectId(req.params.id)},{date:new Date()}]},
+        function(err,Rdata){
+            if(!err){
+                res.status(200).json({status:true,message:'Today report get',data:Rdata});
+                return;
+            }
+            else{
+                console.log('Error for report data',err);
+                res.status(400).json({status:false,message:'Error for get report data.'});
+                return;
+            }
+    })
+}
