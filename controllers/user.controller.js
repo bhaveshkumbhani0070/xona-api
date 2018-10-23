@@ -155,22 +155,27 @@ exports.send_Otp=function(req,res){
 
 
 exports.send_all_package=function(req,res){
-    User.find(function(err,data){
-        if(!err){
-            var allData=[];
-            for (let i = 0; i < data.length; i++) {
-                data[i].packageList.forEach(element => {
-                    allData.push(element);
-                });
+   var user_id=req.body.user_id;
+   var packageList=req.body.packageList;
+   User.findByIdAndUpdate(user_id, {$set: {packageList:packageList}}, function (err, product) {
+    if (err){
+        console.log('Error for update profile',err);
+        res.status(400).json({status:false,message:'Error for update user'});
+        return;
+    }
+    else{
+        User.findOne(mongoose.Types.ObjectId(user_id),function(err,userData){
+            if(!err){
+                res.status(200).json({status:true,message:'Package add successfully!',data:userData});
+                return;
             }
-            res.status(200).json({status:true,message:'Get all packages',data:allData});
-            return;
-        }
-        else{
-            console.log('Error ',error);
-            res.status(400).json({status:false,message:'Error for getting user details'});
-            return;
-        }
+            else{
+                console.log('Error for find user',err);
+                res.status(400).json({status:false,message:'Error for find user'});
+                return;
+            }
+        })
+    }
     });
 }
 
