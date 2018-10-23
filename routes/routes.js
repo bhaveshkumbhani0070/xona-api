@@ -11,11 +11,13 @@ router.get('/',function(req,res){
 })
 
 router.post('/signup', user_controller.signup);
+router.post('/send_otp',user_controller.send_Otp);
 router.get('/send_all_package',user_controller.send_all_package);
 router.post('/verifyotp',user_controller.verifyOTP);
+router.put('/:id/update_user', user_controller.update_user)
+
 router.post('/login',user_controller.login);
 router.get('/:id', user_controller.user_details);
-router.put('/:id/update', user_controller.user_update)
 router.delete('/:id/delete', user_controller.user_delete);
 
 module.exports = router;

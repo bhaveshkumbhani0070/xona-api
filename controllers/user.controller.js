@@ -4,7 +4,7 @@ const SendOtp = require('sendotp');
 const config=require("../config.json");
 const sendOtp = new SendOtp(config.otpAuth,'Otp for XONA.in is {{otp}}, please do not share it with anybody');
 const fun=require('./function');
-
+var mongoose = require('mongoose');
 
 
 
@@ -130,6 +130,28 @@ exports.signup = function (req, res) {
     }
 };
 
+
+exports.send_Otp=function(req,res){
+    sendOtp.send(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND", function(err,data){
+            if(!err){
+                console.log('Send successfully',data);
+                if(data.type=='success'){
+                    res.status(200).json({status:true,message:'OTP send successfully!'});
+                    return;
+                }
+                else{
+                    console.log('Error for send OTp',data.message);
+                    res.status(400).json({status:false,message:data.message});
+                    return;
+                }
+            }
+            else{
+                console.log('Error for sending OTP',err);
+                res.status(400).json({status:false,message:'Error for send OTP'});
+                return;
+            }
+        });
+}
 
 
 exports.send_all_package=function(req,res){
@@ -274,21 +296,79 @@ exports.user_details=function(req,res){
     })
 }
 
-exports.user_update=function(req,res){
-    User.findByIdAndUpdate(req.params.id, {$set: req.body}, function (err, product) {
-        if (err){
-            console.log('Error for update profile',err);
+exports.update_user=function(req,res){
+    console.log("*** Requested for EDITING/UPDATING User... ***");
+    receivedValues = req.body //DATA FROM WEB
+    if (JSON.stringify(receivedValues) === '{}')
+    {
+        res.status(400).json({status:false,message:'Body data required'});
+        return;
+    }
+    else
+    {
+        var updateString = "";
+        console.log("*** Validating User Details... ");
+        usercolumns = [
+            "firstname", "lastname",
+             "primaryNumber","secondaryNumber",
+            "email", "alternate_email","dob",
+            "merriag_date", "area", "pincode",
+            "city", "country", "gender",
+            "reffaral_id","code", "childCode",
+            "gst_no", "verified","create_at",
+            "deviceData","packageList"
+           ];
+        var dbValues = [];
+        var tmpcolumnName = [];
+        //FOR VALIDATING VALUES BEFORE SUBMISSION
+        for (var iter = 0; iter < usercolumns.length; iter++)
+        {
+            columnName = usercolumns[iter];
+
+            if (receivedValues[columnName] != undefined)
+            {
+                dbValues[iter] = receivedValues[columnName];
+                tmpcolumnName[iter] = usercolumns[iter];
+                if (updateString == "")
+                    updateString = columnName + "='" + receivedValues[columnName] + "'";
+                else
+                    updateString = updateString + "," + columnName + "='" + receivedValues[columnName] + "'";
+            }
         }
-        res.send('Product udpated.');
-    });
+
+        console.log('receivedValues',receivedValues);
+
+        User.findByIdAndUpdate(req.params.id, {$set: receivedValues}, function (err, product) {
+            if (err){
+                console.log('Error for update profile',err);
+                res.status(400).json({status:false,message:'Error for update user'});
+                return;
+            }
+            else{
+                User.findOne(mongoose.Types.ObjectId(req.params.id),function(err,userData){
+                    if(!err){
+                        res.status(200).json({status:true,message:'User update successfully',data:userData});
+                        return;
+                    }
+                    else{
+                        console.log('Error for find user',err);
+                        res.status(400).json({status:false,message:'Error for find user'});
+                        return;
+                    }
+                })
+            }
+        });
+    }
 }
 
 exports.user_delete=function(req,res){
     User.findByIdAndRemove(req.params.id, function (err) {
         if (err){
             console.log('Error',err);
+            res.status(400).json({status:false,message:'Error for deleting user'});
+            return;
         }
         res.send('Deleted successfully!');
-    })
+    });
 }
 
