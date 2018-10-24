@@ -378,8 +378,8 @@ exports.verifyOTP=function(req,res){
                 res.status(200).json({
                     status:true,
                     message:'Account verified!',
-                    data:data,
-                    token:token
+                    token:token,
+                    data:data
                     });
                 return;
             });
