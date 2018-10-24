@@ -68,74 +68,84 @@ exports.signup = function (req, res) {
                 if(!err){
                     if(oldUser.length>0){
                         console.log('User alredy register with this mobile number');
-                        genrateToken(oldUser[0]._id,oldUser[0].code,function(token){
-                            res.status(200).json({
-                                status:true,
-                                message:'User alredy register with this mobile number.',
-                                data:oldUser,
-                                token:token
-                                });
-                            return;
-                        })
+                        sendOTP(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND",function(otpRes){
+                            if(otpRes){
+                                res.status(200).json({status:true,message:'OTP send successfully!'});
+                                return;
+                            }
+                            else{
+                                res.status(400).json({status:false,message:'Error for send otp'});
+                                return;
+                            }
+                        });
+
                     }
                     else{
+                        if(!req.body.deviceData){
+                            res.status(400).json({status:false,message:'Please first register from mobile'});
+                            return;
+                        }
                         // Will send otp on mobile
-                        sendOTP(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND");
-                        // Genrate uniq code for user which will use as a refrence code
-
-                            //check code is found in database or not
-                            if(req.body.parentCode){
-                                User.find({code:req.body.parentCode},function(err,parentData){
-                                    if(!err){
-                                        if(parentData.length>0){
-                                            console.log('data found');
-                                            User.findByIdAndUpdate(parentData[0]._id, {$push: {childCode:cData}}, function (err, product) {
-                                                if (err){
-                                                    console.log('Error for update ');
-                                                    return;
-                                                    // res.json({code:200,status:'error',message:'Error for update'});
-                                                    // return;
-                                                }
-                                                else{
-                                                    // Create new user with parent code and child code blank for feature update
-                                                    console.log('Error for push child code into child array');
-                                                    return;
-                                                }
-                                            });
+                        sendOTP(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND",function(otpRes){
+                            if(otpRes){
+                                if(req.body.reffaral_id){
+                                    User.find({code:req.body.reffaral_id},function(err,parentData){
+                                        if(!err){
+                                            if(parentData.length>0){
+                                                console.log('data found');
+                                                User.findByIdAndUpdate(parentData[0]._id, {$push: {childCode:cData}}, function (err, product) {
+                                                    if (err){
+                                                        console.log('Error for update ');
+                                                        return;
+                                                        // res.json({code:200,status:'error',message:'Error for update'});
+                                                        // return;
+                                                    }
+                                                    else{
+                                                        // Create new user with parent code and child code blank for feature update
+                                                        console.log('push child code into child array');
+                                                        return;
+                                                    }
+                                                });
+                                            }
+                                            else{
+                                                console.log('data not found');
+                                                return;
+                                            }
                                         }
                                         else{
-                                            console.log('data not found');
+                                            res.status(500).json({ status: false,message:'Error for get a data for parent' })
                                             return;
                                         }
+                                    })
+                                }
+
+                                let user = new User(receivedValues);
+
+                                user.save(function (err,data) {
+                                    if (err) {
+                                        console.log('Error for save data',err);
+                                        res.status(500).json({ status: false,message:'Error for save user details' });
+                                        return;
                                     }
                                     else{
-                                        res.status(500).json({ status: false,message:'Error for get a data for parent' })
-                                        return;
-                                    }
-                                })
-                            }
-
-                            let user = new User(receivedValues);
-
-                            user.save(function (err,data) {
-                                if (err) {
-                                    console.log('Error for save data',err);
-                                    res.status(500).json({ status: false,message:'Error for save user details' });
-                                    return;
-                                }
-                                else{
-                                    genrateToken(data._id,data.code,function(token){
                                         res.status(200).json({
                                             status: true,
-                                            message:'User created successfull !',
-                                            data:data,
-                                            token:token
+                                            message:'User created successfull!, Please verifie account.',
+                                            // data:data,
+                                            // token:token
                                         });
                                         return;
-                                    });
-                                }
-                            })
+                                        // genrateToken(data._id,data.code,function(token){
+                                        // });
+                                    }
+                                })
 
+                            }
+                            else{
+                                res.status(400).json({status:false,message:'Error for send otp'});
+                                return;
+                            }
+                        });
                     }
                 }
                 else{
@@ -267,13 +277,15 @@ function genrateToken(id,code,callback){
     callback(token);
 }
 
-function sendOTP(mobi,mes){
+function sendOTP(mobi,mes,callback){
     sendOtp.send(mobi, mes, function(err,data){
         if(!err){
             console.log('Send successfully',data);
+            callback(true);
         }
         else{
             console.log('Error for sending OTP',err);
+            callback(false);
         }
     });
 }
@@ -328,8 +340,7 @@ exports.verifyOTP=function(req,res){
                             return;
                         }
                         else{
-                            res.status(200).json({ status:true,message:'Account successfully verified !' });
-                            return;
+                            giveResWithToken(data);
                         }
                     });
                 }
@@ -350,8 +361,7 @@ exports.verifyOTP=function(req,res){
                             return;
                         }
                         else{
-                            res.status(200).json({ status:true,message:'Account successfully verified !' });
-                            return;
+                            giveResWithToken(data);
                         }
                     });
                 }
@@ -361,6 +371,18 @@ exports.verifyOTP=function(req,res){
                     return;
                 }
             })
+        }
+
+        function giveResWithToken(data){
+            genrateToken(data[0]._id,data[0].code,function(token){
+                res.status(200).json({
+                    status:true,
+                    message:'Account verified!',
+                    data:data,
+                    token:token
+                    });
+                return;
+            });
         }
 
     }
