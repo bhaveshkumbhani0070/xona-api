@@ -7,6 +7,7 @@ const config=require("../config.json");
 const sendOtp = new SendOtp(config.otpAuth,'Otp for XONA.in is {{otp}}, please do not share it with anybody');
 const fun=require('./function');
 var mongoose = require('mongoose');
+var jwt = require("jsonwebtoken");
 
 
 // ******************************** Users ******************************** //
@@ -67,8 +68,15 @@ exports.signup = function (req, res) {
                 if(!err){
                     if(oldUser.length>0){
                         console.log('User alredy register with this mobile number');
-                        res.status(200).json({status:true,message:'User alredy register with this mobile number.',data:oldUser});
-                        return;
+                        genrateToken(oldUser[0]._id,oldUser[0].code,function(token){
+                            res.status(200).json({
+                                status:true,
+                                message:'User alredy register with this mobile number.',
+                                data:oldUser,
+                                token:token
+                                });
+                            return;
+                        })
                     }
                     else{
                         // Will send otp on mobile
@@ -116,8 +124,15 @@ exports.signup = function (req, res) {
                                     return;
                                 }
                                 else{
-                                    res.status(200).json({ status: true,message:'User created successfull !',data:data });
-                                    return;
+                                    genrateToken(data._id,data.code,function(token){
+                                        res.status(200).json({
+                                            status: true,
+                                            message:'User created successfull !',
+                                            data:data,
+                                            token:token
+                                        });
+                                        return;
+                                    });
                                 }
                             })
 
@@ -133,30 +148,84 @@ exports.signup = function (req, res) {
     }
 };
 
-exports.login=function(req,res){
 
+// var name=req.user.name;
+// console.log('name',name);
+exports.login=function(req,res){
+    var primaryNumber=req.body.primaryNumber;
+    User.find({primaryNumber:primaryNumber},function(err,data){
+        if(!err){
+            if(data.length>0){
+
+            }
+            else{
+
+            }
+        }
+        else{
+            console.log('Error for find user data',err);
+            res.status(500).json({status:false,message:'Error for find user using primary number'});
+            return;
+        }
+    })
 }
 
 exports.send_Otp=function(req,res){
-    sendOtp.send(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND", function(err,data){
-            if(!err){
-                console.log('Send successfully',data);
-                if(data.type=='success'){
-                    res.status(200).json({status:true,message:'OTP send successfully!'});
+    User.find({$or:
+        [
+            {primaryNumber:req.body.primaryNumber},
+            {secondaryNumber:req.body.secondaryNumber}
+        ]
+    },function(err,Pdata){
+        if(!err){
+            if(Pdata.length>0){
+                // Check user with primary number is verified or not
+                if(Pdata[0].verified){
+                    // Is verified send response with verified
+                    res.status(200).json({status:true,message:'User is alredy verified, Please login',data:Pdata});
                     return;
                 }
                 else{
-                    console.log('Error for send OTp',data.message);
-                    res.status(400).json({status:false,message:data.message});
-                    return;
+                    unregister_sendOtp(Pdata);
                 }
             }
             else{
-                console.log('Error for sending OTP',err);
-                res.status(400).json({status:false,message:'Error for send OTP'});
-                return;
+                unregister_sendOtp(false);
             }
-        });
+        }
+        else{
+            console.log('Error for find primary number',err);
+            res.status(500).json({status:false,message:'Error for find with primary number'});
+            return;
+        }
+    })
+    function unregister_sendOtp(pdata){
+        sendOtp.send(req.body.primaryNumber || req.body.secondaryNumber,"PRIIND", function(err,data){
+                if(!err){
+                    console.log('Send successfully',data);
+                    if(data.type=='success'){
+                        if(pdata){
+                            res.status(200).json({status:true,message:'User is not register',data:pdata});
+                            return;
+                        }
+                        else{
+                            res.status(200).json({status:true,message:'OTP send successfully!',data:{verified:false}});
+                            return;
+                        }
+                    }
+                    else{
+                        console.log('Error for send OTp',data.message);
+                        res.status(400).json({status:false,message:data.message});
+                        return;
+                    }
+                }
+                else{
+                    console.log('Error for sending OTP',err);
+                    res.status(400).json({status:false,message:'Error for send OTP'});
+                    return;
+                }
+            });
+    }
 }
 
 
@@ -189,6 +258,13 @@ exports.send_all_package=function(req,res){
 function genrateCode(callback){
     var choice = fun.makeid();
     callback(choice);
+}
+
+function genrateToken(id,code,callback){
+    var token = jwt.sign({id:id,code:code}, config.secret, {
+            expiresIn: 1440 * 60 * 30 // expires in 1440 minutes
+    });
+    callback(token);
 }
 
 function sendOTP(mobi,mes){
@@ -387,7 +463,7 @@ exports.user_delete=function(req,res){
 
 exports.get_today_report=function(req,res){
 
-    Report.find({$and:[{_id:mongoose.Types.ObjectId(req.params.id)},{date:new Date()}]},
+    Report.find({$and:[{_id:mongoose.Types.ObjectId(req.user.id)},{date:new Date()}]},
         function(err,Rdata){
             if(!err){
                 res.status(200).json({status:true,message:'Today report get',data:Rdata});
