@@ -30,7 +30,7 @@ exports.signup = function (req, res) {
              "merriag_date", "area", "pincode",
              "city", "country", "gender",
              "reffaral_id","code", "childCode",
-             "gst_no", "verified","create_at",
+             "gst_no", "verified","approved","create_at",
              "deviceData","packageList"
             ];
 
@@ -59,6 +59,7 @@ exports.signup = function (req, res) {
         }
         receivedValues.create_at=new Date();
         receivedValues.verified=false;
+        receivedValues.approved=false;
         console.log('dbValues',receivedValues);
         genrateCode(function(cData){
             receivedValues.code=cData;
@@ -395,7 +396,7 @@ exports.verifyOTP=function(req,res){
 
 
 exports.user_details=function(req,res){
-    User.findById(req.user.id, function (err, product) {
+    User.findById(req.params.id, function (err, product) {
         if (err){
             console.log('Error',err);
         }
@@ -480,6 +481,37 @@ exports.user_delete=function(req,res){
 }
 
 
+exports.all_users=function(req,res){
+    User.find(function(err,allData){
+        if(!err){
+            console.log('Data',allData);
+            res.status(200).json({status:true,message:'All user found',data:allData});
+            return;
+        }
+        else{
+            console.log('Error',err);
+            res.status(500).json({status:false,message:'Error for finding users'});
+            return;
+        }
+    });
+}
+
+exports.user_approve=function(req,res){
+    var user_id=req.body.user_id;
+    var approved=req.body.approved;
+
+    User.findByIdAndUpdate(user_id, {$set: {approved:approved}}, function (err, product) {
+        if (err){
+            console.log('Error for update profile',err);
+            res.status(400).json({status:false,message:'Error for update user'});
+            return;
+        }
+        else{
+            res.status(200).json({status:true,message:'User approved successfully'});
+            return;
+        }
+    });
+}
 
 // ******************************** Reports ******************************** //
 
