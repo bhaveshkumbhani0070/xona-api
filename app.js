@@ -37,7 +37,6 @@ apiRouter.use(function(req, res, next) {
             if (err) {
                 return res.json({ "code": 200, "status": "Error", "message": "Failed to authenticate token" });
             } else {
-                console.log('decoded',decoded);
                 req.user = decoded;
                 next();
             }

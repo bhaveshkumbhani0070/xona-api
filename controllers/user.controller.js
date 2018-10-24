@@ -298,13 +298,13 @@ exports.verifyOTP=function(req,res){
                             verifiAccount('secondaryNumber',secondaryNumber)
                         }
                         else{
-                            res.status(500).json({ status:true,message:'OTP not match!' });
+                            res.status(500).json({ status:false,message:'OTP not match!' });
                             return;
                         }
                     }
                     else{
                         console.log('Error for match OTP');
-                        res.status(400).json({ status:true,message:'Error for match OTP' });
+                        res.status(400).json({ status:false,message:'Error for match OTP' });
                         return;
                     }
                 })
@@ -373,7 +373,7 @@ exports.verifyOTP=function(req,res){
 
 
 exports.user_details=function(req,res){
-    User.findById(req.params.id, function (err, product) {
+    User.findById(req.user.id, function (err, product) {
         if (err){
             console.log('Error',err);
         }
@@ -423,14 +423,14 @@ exports.update_user=function(req,res){
 
         console.log('receivedValues',receivedValues);
 
-        User.findByIdAndUpdate(req.params.id, {$set: receivedValues}, function (err, product) {
+        User.findByIdAndUpdate(req.user.id, {$set: receivedValues}, function (err, product) {
             if (err){
                 console.log('Error for update profile',err);
                 res.status(400).json({status:false,message:'Error for update user'});
                 return;
             }
             else{
-                User.findOne(mongoose.Types.ObjectId(req.params.id),function(err,userData){
+                User.findOne(mongoose.Types.ObjectId(req.user.id),function(err,userData){
                     if(!err){
                         res.status(200).json({status:true,message:'User update successfully',data:userData});
                         return;
